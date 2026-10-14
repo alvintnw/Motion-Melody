@@ -1,0 +1,298 @@
+# Air Rhythm — Future Plan
+
+## Purpose
+
+Air Rhythm is a learning and portfolio project that demonstrates practical computer vision and machine-learning skills.
+The current goal is to help employers and recruiters quickly understand what was built, why it works, and how its quality was measured.
+Releasing a complete commercial game is not the current goal.
+
+## Current technical baseline
+
+The project already uses:
+
+- Python OpenCV for desktop webcam capture and frame processing; OpenCV.js for browser frame preparation.
+- A shared HTML/CSS/Canvas interface that draws the performance stage and live-input inset in both versions.
+- MediaPipe's pretrained Hand Landmarker for 21 landmarks on each detected hand.
+- Landmark history for fingertip movement and direction estimates.
+- Path-based collision so fast motion between frames can still hit a node.
+- A timed rhythm challenge, scoring, and synthesised audio in both versions; optional privacy views in the desktop app.
+- A person-free performance stage with virtual drumsticks driven by hand landmarks.
+- A portfolio interface with title, gameplay HUD, help, results, a live camera-and-skeleton inset, and technical telemetry.
+
+MediaPipe is a pretrained model used by this project.
+It must not be described as a model trained by us.
+A future custom gesture classifier will be the project's own trained ML component.
+
+## Priority order
+
+Plans are ranked by career and learning value:
+
+1. Make the existing computer-vision pipeline easy to see and explain.
+2. Measure speed, latency, and reliability with repeatable evidence.
+3. Build and evaluate a custom temporal gesture classifier.
+4. Test robustness across realistic camera conditions.
+5. Produce a short demo and a clear technical case study.
+6. Consider optional game and release features only after the portfolio evidence is complete.
+
+## Milestone 1 — Portfolio-ready interface and technical visibility
+
+**Status:** Implemented and exercised with live cameras in both versions. Final demo recording and a side-by-side desktop/browser review at the showcase resolution remain.
+
+### Work
+
+- Create a polished title and tutorial screen.
+- Keep the gameplay screen clean for screen recording with a person-free main stage.
+- Show score, combo, timing feedback, song progress, and hand-detection status clearly.
+- Keep the MediaPipe hand skeleton visible in the compact live-input inset during the demonstration.
+- Make the virtual drumsticks visibly follow the tracked hands without pretending they are a 3D reconstruction.
+- Show every active fingertip collision point, with the index point aligned to the virtual drumstick tip.
+- Number challenge notes and subtly brighten the next unhit note so chart order is immediately understandable.
+- Add a debug view for FPS, inference time, detected hands, landmark count, and handedness-classification confidence when available.
+- Keep OpenCV + MediaPipe details available in the optional technical view without making normal play look like a dashboard.
+- Move drawing responsibilities out of the main camera loop where practical.
+
+### Definition of Done
+
+- A new viewer understands the interaction within five seconds.
+- The title, gameplay, and results screens fit correctly at 1280×720 and 1920×1080.
+- Debug information can be turned on and off with one key.
+- Normal play remains readable when the debug view is off.
+- A 30-second recording clearly shows the live input skeleton, virtual drumsticks, node contact, timing feedback, and score changes.
+
+### Learning outcomes
+
+- Separate computer-vision processing from interface rendering.
+- Design live overlays that stay readable over a generated performance stage.
+- Separate private camera evidence from the public-facing visual experience.
+- Present technical information without distracting from the interaction.
+
+## Milestone 2 — Latency calibration and performance measurement
+
+**Status:** The privacy-safe benchmark recorder and background latest-frame capture are implemented and validated in a 64.67-second live run. Audio-device calibration is still pending.
+
+### Work
+
+- Measure camera capture, MediaPipe inference, game update, rendering, and audio-trigger time separately.
+- Measure camera preparation separately so resizing and colour conversion are visible rather than hidden inside the frame total.
+- Add a rolling FPS and frame-time measurement.
+- Record average, median, 95th-percentile, and worst frame times.
+- Create a simple audio-delay calibration flow for the local computer.
+- Compare speakers, wired headphones, and Bluetooth only when those devices are available.
+- Profile the main loop and optimise the slowest measured stage.
+- Document the test machine, camera resolution, and test settings.
+
+### Implemented foundation
+
+- Press `B` to start or stop a benchmark without interrupting gameplay.
+- Measure camera capture, MediaPipe inference, game update, rendering, complete-frame processing, and frame-start-to-audio-request timing.
+- Report average, median, 95th-percentile, best, and worst values.
+- Track average/minimum FPS, slow frames, and estimated dropped frames against a 30 FPS budget.
+- Save JSON plus readable Markdown containing environment and test settings.
+- Store no camera images and no hand-landmark coordinates.
+- Label audio timing as an approximate software-path measurement rather than physical speaker latency.
+- Request 1280×720 at 30 FPS and defensively downscale larger camera frames before landmark inference.
+- Record requested, reported, captured, processing, and stage resolutions so benchmark comparisons remain honest.
+- Read camera frames on a background worker so device waiting can overlap MediaPipe inference and rendering.
+- Track the main-loop wait for fresh input and source frames intentionally skipped to avoid stale latency.
+
+### Measured result
+
+- Baseline: 15.03 average FPS from a 77.20-second run with 1920×1080 captured frames and a 1920×1200 generated stage.
+- First optimisation: two 1280×720 runs measured 16.04 and 16.59 average FPS; rendering improved, but serial camera waiting still dominated the loop.
+- Final 64.67-second run: 30.39 average FPS, zero estimated dropped frames, 20.12 ms average complete-frame time, and 9.48 ms average frame-start-to-audio-request time across 70 hit frames.
+- Background latest-frame capture was the decisive architecture change; the full comparison and limitations are documented in [Performance Study](PERFORMANCE_STUDY.md).
+- Manual low-hand-position testing found the adaptive filter smoother, with residual edge-of-frame vibration retained as a documented limitation rather than hidden by input-delaying over-smoothing.
+
+### Evidence lifecycle
+
+- Raw JSON and Markdown measurements were kept temporarily in the repository-local, ignored `benchmark_reports/` directory.
+- The methodology, bottlenecks, architecture changes, before/after table, and conclusions are consolidated in [Performance Study](PERFORMANCE_STUDY.md).
+- Raw benchmark files are deleted after consolidation so temporary evidence does not accumulate outside the maintained study.
+
+### Definition of Done
+
+- A benchmark can run for at least 60 seconds without opening private recordings or saving camera images.
+- The benchmark table reports FPS and timing for each major pipeline stage.
+- The game stays responsive at the chosen showcase resolution.
+- Calibration produces a saved timing offset that the beat clock can use.
+- Before-and-after measurements support every performance optimisation claimed in the README.
+
+### Learning outcomes
+
+- Understand latency across a real-time computer-vision pipeline.
+- Use profiling evidence to choose optimisations.
+- Explain why average speed alone can hide dropped or delayed frames.
+
+## Milestone 3 — Custom temporal gesture classifier
+
+### Goal
+
+Train a small model that recognises movement from a sequence of hand landmarks over time.
+This will add original ML work while MediaPipe continues to provide the raw hand landmarks.
+
+### Dataset
+
+- Record short landmark sequences rather than camera images by default.
+- Store normalized x, y, and z values plus timestamps and handedness.
+- Include labels such as `idle`, `touch`, `swipe_down`, `swipe_left`, `swipe_right`, and `push_forward`.
+- Collect multiple speeds, hand sizes, positions, distances, and lighting conditions.
+- Record several sessions so train and test data do not come from the same continuous capture.
+- Add examples where a movement starts but does not finish.
+- Keep dataset consent and privacy notes with the collection script.
+
+### Model work
+
+- Start with the current rule-based movement logic as the baseline.
+- Train a simple classical baseline using features such as velocity, direction, distance, and duration.
+- Compare it with one temporal model, such as a small 1D CNN or LSTM, only if the dataset is large enough.
+- Keep model input, preprocessing, and prediction code reproducible.
+- Measure prediction time inside the live application.
+
+### Evaluation
+
+- Split data by recording session, and by person when multiple volunteers are available.
+- Report accuracy, per-class precision, recall, and F1 score.
+- Produce a confusion matrix to show which gestures the model mixes up.
+- Measure false activations during `idle` sequences.
+- Compare the trained model with the rule-based baseline under the same test data.
+- Create a model card covering data, intended use, limits, privacy, metrics, and known failure cases.
+
+### Definition of Done
+
+- The dataset format and label guide are documented.
+- A repeatable command trains the model from saved landmark sequences.
+- A held-out test set is never used during training or tuning.
+- The report contains precision, recall, F1, a confusion matrix, and live inference time.
+- The live app can switch between rule-based and trained gesture recognition for comparison.
+- The README states exactly which part was trained by us and which part comes from MediaPipe.
+
+### Learning outcomes
+
+- Design and label a small temporal dataset.
+- Prevent data leakage between training and evaluation.
+- Compare a learned model with a meaningful baseline.
+- Interpret class-level errors rather than relying on one accuracy number.
+- Integrate a trained model into a real-time OpenCV application.
+
+## Milestone 4 — Computer-vision robustness
+
+### Implemented foundation
+
+- Preserve stable Left/Right identities even when MediaPipe reverses its result-list order.
+- Adaptively smooth landmark position and orientation while relaxing the filter during fast deliberate movement.
+- Keep a lost hand's final stick pose visible for up to 140 ms, while immediately disabling its stale collision points.
+- Reset movement history when a hand disappears so reacquisition cannot create a false strike.
+
+### Work
+
+- Build a repeatable test checklist for bright, dim, and uneven lighting.
+- Test plain and cluttered backgrounds.
+- Test one hand, two hands, crossed hands, partial hands, and brief occlusion.
+- Measure identity switches during crossed-hand tests; stable Left/Right identities are already implemented.
+- Test slow movement and fast movement at several distances from the camera.
+- Record detection loss, false hits, missed hits, and recovery time.
+- Tune smoothing and collision settings from measurements rather than one recording.
+- Evaluate whether the existing 0/2 and 1/2 hand-count reminder helps people recover from detection loss; add instability-specific feedback only if testing shows a need.
+
+### Planned beginner assistance — Tracking-loss pause and recovery
+
+Status: Planned, not implemented. Suggested in community feedback on the demo, for both the desktop and browser versions.
+
+Currently, losing a hand disables its collision points immediately and can retain its final stick pose visually for up to 140 ms. The song timeline keeps running, so tracking loss can still lead to missed notes. The wrist-position prompt helps players stay in view, but does not pause the round.
+
+Goal: Help new players distinguish a tracking failure from a genuinely missed note, without making brief detection fluctuations repeatedly interrupt the song.
+
+- Add an optional beginner-assistance mode that pauses after a short, configurable tracking-loss grace period. Determine the threshold through testing rather than choosing it from one demo.
+- Define which hands the selected mode expects before starting; distinguish loss of a required hand from intentional one-hand play where supported.
+- Show a clear tracking-loss message with guidance to bring the hands and wrists back into view. Freeze the song timeline, note movement, and gameplay-related audio scheduling; suspend miss penalties and combo changes while paused.
+- Keep camera capture and hand detection running during the pause so tracking can recover.
+- Resume only after fresh tracking is stable, using a short countdown or player confirmation. Reset movement history so reacquisition cannot trigger a false strike, and preserve note timing across the pause.
+- Keep assisted rounds distinguishable from uninterrupted challenge rounds, since automatic pauses change rhythm flow and scoring conditions.
+
+Validation: Test brief frame-edge exits, partial hands, occlusion, repeated dropouts, and loss of one or both required hands. Measure unnecessary pauses, recovery time, and false hits after resuming on both versions. Verify that paused time does not advance notes or add misses, and that genuine gameplay misses still count outside a pause. Pausing is a usability aid, not a fix for the underlying tracking failure.
+
+### Definition of Done
+
+- At least three lighting conditions and three background conditions are documented.
+- A fixed interaction script is repeated for each condition.
+- The results table reports hit success, false-hit count, tracking loss, and recovery time.
+- Known failure cases are shown honestly in the case study.
+- Selected thresholds and smoothing values include a short evidence-based explanation.
+
+### Learning outcomes
+
+- Test a vision system beyond the ideal development setup.
+- Understand occlusion, lighting, motion blur, and landmark jitter.
+- Turn observed failures into measurable engineering decisions.
+
+## Milestone 5 — Demo evidence and case study
+
+### Portfolio assets
+
+- Create an architecture diagram from webcam input to audio output.
+- Record a 30–60 second demo with normal gameplay and a short debug-view segment.
+- Add a benchmark table for FPS, pipeline latency, and gesture metrics.
+- Add a concise README case study covering the problem, design, challenges, results, and lessons.
+- Include one short example of a failure and the improvement made from it.
+- Add screenshots of the title screen, gameplay, debug view, and results screen.
+- Prepare a short LinkedIn caption focused on the computer-vision and ML learning.
+
+### Definition of Done
+
+- The repository can be understood without running the program.
+- Every performance or ML claim links to a measurement or test result.
+- The architecture diagram matches the current code.
+- The demo shows the hand skeleton and real interaction without edits that hide failures.
+- Setup instructions work from a clean local environment.
+- The case study clearly distinguishes existing libraries from original engineering work.
+
+### Learning outcomes
+
+- Communicate technical work to both engineers and recruiters.
+- Support portfolio claims with evidence.
+- Explain tradeoffs, limitations, and lessons with confidence.
+
+## Desktop visual parity with the browser
+
+**Status:** The native desktop window loads the shared web interface. Automated native-window checks use synthetic input; a side-by-side live-camera review at the showcase resolution remains useful.
+
+- Both versions use the same HTML/CSS, text, menus, status badges, HUD, results, note graphics, and input inset. UI resolution is independent of camera resolution.
+- Python retains desktop capture, MediaPipe inference, filtering, collision, scoring, and audio. A latest-state bridge drives the native window.
+- The desktop camera inset, hand skeleton, gameplay timing, and benchmark controls remain intact.
+- Compare both versions during a live session at the showcase resolution before calling the visual pass complete.
+
+## Optional later product and game ideas
+
+These ideas can make Air Rhythm more game-like, but they come after the portfolio milestones:
+
+- Easy, Normal, and Hard difficulties.
+- More public-domain or original song charts.
+- A song-selection library.
+- User-created rhythm charts.
+- More instruments and sound packs.
+- Calibration profiles for different cameras and audio devices.
+- Improved privacy using hand segmentation rather than a landmark-shaped mask.
+- Packaging as a standalone desktop application.
+- Installer, release builds, automatic updates, and broader operating-system support.
+- Accessibility settings and remappable controls.
+- AI-assisted rhythm-chart generation, evaluated separately from the gesture classifier.
+
+## Not in the current scope
+
+- Commercial game release or monetisation.
+- Large content libraries or licensed popular-song recordings.
+- Online multiplayer, accounts, leaderboards, or cloud services.
+- Native mobile and console apps; the existing website can be played on a phone.
+- Complex menus, cosmetics, achievements, or progression systems.
+- Anti-cheat systems or competitive balancing.
+- Production support for every camera, speaker, and operating system.
+- Claiming that MediaPipe's Hand Landmarker was trained by this project.
+
+New ideas should enter the current roadmap only when they improve one of these goals:
+
+- Demonstrate OpenCV or real-time computer-vision engineering.
+- Add honest, measurable ML work.
+- Improve the quality of the technical evidence.
+- Teach a skill that can be clearly explained in an interview.
+
+Otherwise, they belong in the optional list until the portfolio version is complete.
