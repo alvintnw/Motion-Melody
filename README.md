@@ -151,5 +151,3 @@ With GNU Make, Node.js, and `uv` or Python 3.14 installed, run `make install` fr
 | [Technical Overview](docs/TECHNICAL_OVERVIEW.md) | Model boundaries, camera-to-audio pipeline, and code structure |
 | [Performance Study](docs/PERFORMANCE_STUDY.md) | Benchmark method, before-and-after data, and limitations |
 | [Future Plan](docs/FUTURE_PLAN.md) | Robustness tests and future ML work |
-
-The browser version is live; the desktop app can be run locally.
