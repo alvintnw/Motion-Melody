@@ -1,16 +1,8 @@
-# Air Rhythm — Gesture-Controlled Music Interface
+# Motion Melody — Gesture-Controlled Music Interface
 
-Air Rhythm is a privacy-first rhythm game controlled by hand movement. A webcam and MediaPipe Hand Landmarker track up to two hands; the application turns fingertip movement into hits on falling notes and synthesizes the corresponding sounds in real time.
+Motion Melody is a privacy-first rhythm game controlled by hand movement. A webcam and MediaPipe Hand Landmarker track up to two hands; the application turns fingertip movement into hits on falling notes and synthesizes the corresponding sounds in real time.
 
 The project includes a browser version written in TypeScript and a Python desktop version. Both versions share the same visual language, song chart, scoring rules, hand stabilisation, collision logic, and privacy principle: camera frames stay on the local device and are never uploaded.
-
-🎮 **Play the live web version →** [air-rhythm.pages.dev](https://air-rhythm.pages.dev/)
-
-**Alternative live link →** [GitHub Pages](https://adolph1999v.github.io/air-rhythm/)
-
-## Watch the demo
-
-https://github.com/user-attachments/assets/afc839c3-085a-44fa-a517-764dae4119da
 
 ## Computer vision in action
 
@@ -67,7 +59,7 @@ The browser version only requires Node.js and npm. The desktop application has b
 From PowerShell, run:
 
 ```powershell
-cd "C:\path\to\air-rhythm\web"
+cd "C:\path\to\Motion-Melody\web"
 npm ci
 npm run dev
 ```
@@ -81,7 +73,7 @@ To stop the development server, press `Ctrl+C`.
 From PowerShell at the repository root:
 
 ```powershell
-cd "C:\path\to\air-rhythm"
+cd "C:\path\to\Motion-Melody"
 uv venv .venv --python 3.14 --allow-existing
 uv pip install --python .venv\Scripts\python.exe -r requirements.txt
 
